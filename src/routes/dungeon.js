@@ -57,15 +57,11 @@ router.post('/action', (req, res, next) => {
 // ── 商店交易：50 金币购买铁铲 ──
 function handleShopTrade(char, state) {
   if (state.shopTradeDone) {
-    return { success: false, message: '你今天已经光顾过商店了。' };
+    throw new AppError(4001, '你今天已经光顾过商店了。');
   }
   const cost = 50;
   if (char.gold < cost) {
-    return {
-      success: false,
-      message: `金币不足！购买铁铲需要 ${cost} 金币（当前 ${char.gold} 金币）。`,
-      dungeonUpdates: { ...state },
-    };
+    throw new AppError(4001, `金币不足！购买铁铲需要 ${cost} 金币（当前 ${char.gold} 金币）。`);
   }
   const newGold = char.gold - cost;
   const newInv = [...char.inventory];

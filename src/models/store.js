@@ -37,7 +37,8 @@ const deleteChar = db.prepare('DELETE FROM characters WHERE id = ?');
 const updateChar = db.prepare(`UPDATE characters SET name=?,level=?,hp=?,maxHp=?,gold=?,stats=?,inventory=?,completedDungeons=?,isAlive=? WHERE id=?`);
 
 function createCharacter(userId, data) {
-  const info = insertChar.run(userId, data.name, 1, 10, 10, 0, JSON.stringify(data.stats), '[]', '[]', 1);
+  const gold = Math.floor(Math.random() * 51) + 50;
+  const info = insertChar.run(userId, data.name, 1, 20, 20, gold, JSON.stringify(data.stats), '[]', '[]', 1);
   return rowToCharacter(findCharById.get(info.lastInsertRowid));
 }
 function findCharactersByUserId(userId) { return listCharsByUser.all(userId).map(r => rowToCharacter(r)); }
