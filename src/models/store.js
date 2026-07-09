@@ -1,7 +1,27 @@
 const db = require('./db');
 
+// ?? ????????? itemId ? itemName ??
+const itemNameCache = new Map();
+function getItemName(itemId) {
+  if (!itemNameCache.has(itemId)) {
+    const row = db.prepare('SELECT name FROM items WHERE id = ?').get(itemId);
+    itemNameCache.set(itemId, row ? row.name : '????');
+  }
+  return itemNameCache.get(itemId);
+}
+
+function resolveInventory(inv) {
+  return inv.map(i => ({
+    itemId: i.itemId,
+    itemName: getItemName(i.itemId),
+    qty: i.qty,
+  }));
+}
+
+// ?? Character ??
 function rowToCharacter(row) {
   if (!row) return null;
+  const rawInv = JSON.parse(row.inventory);
   return {
     id: row.id,
     userId: row.userId,
@@ -11,7 +31,7 @@ function rowToCharacter(row) {
     maxHp: row.maxHp,
     gold: row.gold,
     stats: JSON.parse(row.stats),
-    inventory: JSON.parse(row.inventory),
+    inventory: resolveInventory(rawInv),
     completedDungeons: JSON.parse(row.completedDungeons),
     isAlive: !!row.isAlive,
   };
@@ -59,4 +79,84 @@ function updateCharacter(id, updates) {
 }
 function deleteCharacter(id) { return deleteChar.run(id).changes > 0; }
 
-module.exports = { createUser, findUserByUsername, findUserById, createCharacter, findCharactersByUserId, findCharacterById, updateCharacter, deleteCharacter };
+// ?? Items ??
+const listItems = db.prepare('SELECT * FROM items');
+const listItemsByType = db.prepare('SELECT * FROM items WHERE type = ?');
+const listItemsByTypeSubtype = db.prepare('SELECT * FROM items WHERE type = ? AND subtype = ?');
+const findItemByIdStmt = db.prepare('SELECT * FROM items WHERE id = ?');
+
+function findAllItems(type, subtype) {
+  let rows;
+  if (type && subtype) rows = listItemsByTypeSubtype.all(type, subtype);
+  else if (type) rows = listItemsByType.all(type);
+  else rows = listItems.all();
+  return rows.map(rowToItem);
+}
+
+function findItemByIdFn(id) {
+  const row = findItemByIdStmt.get(id);
+  return row ? rowToItem(row) : null;
+}
+
+function rowToItem(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    subtype: row.subtype,
+    description: row.description,
+    price: row.price,
+    sellPrice: row.sellPrice,
+    rarity: row.rarity,
+    stats: JSON.parse(row.stats),
+    stackable: !!row.stackable,
+    maxStack: row.maxStack,
+  };
+}
+
+// ?? NPCs ??
+const listNpcs = db.prepare('SELECT * FROM npcs');
+const listNpcsByRole = db.prepare('SELECT * FROM npcs WHERE role = ?');
+const findNpcByIdStmt = db.prepare('SELECT * FROM npcs WHERE id = ?');
+
+function findAllNpcs(role) {
+  const rows = role ? listNpcsByRole.all(role) : listNpcs.all();
+  return rows.map(r => rowToNpc(r));
+}
+function findNpcByIdFn(id) {
+  const row = findNpcByIdStmt.get(id);
+  return row ? rowToNpc(row) : null;
+}
+
+function rowToNpc(row) {
+  if (!row) return null;
+  const rawInv = JSON.parse(row.inventory);
+  const rawEquip = JSON.parse(row.equipment);
+  return {
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    level: row.level,
+    hp: row.hp,
+    maxHp: row.maxHp,
+    gold: row.gold,
+    stats: JSON.parse(row.stats),
+    inventory: resolveInventory(rawInv),
+    equipment: {
+      weapon: rawEquip.weapon ? findItemByIdFn(rawEquip.weapon) : null,
+      armor: rawEquip.armor ? findItemByIdFn(rawEquip.armor) : null,
+      accessory: rawEquip.accessory ? findItemByIdFn(rawEquip.accessory) : null,
+    },
+    description: row.description,
+    dialogue: row.dialogue,
+    isHostile: !!row.isHostile,
+  };
+}
+
+module.exports = {
+  createUser, findUserByUsername, findUserById,
+  createCharacter, findCharactersByUserId, findCharacterById, updateCharacter, deleteCharacter,
+  findAllItems, findItemById: findItemByIdFn,
+  findAllNpcs, findNpcById: findNpcByIdFn,
+};

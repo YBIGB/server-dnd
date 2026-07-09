@@ -1,4 +1,4 @@
-const { Router } = require('express');
+﻿const { Router } = require('express');
 const store = require('../models/store');
 const authMiddleware = require('../middleware/auth');
 const { AppError, success } = require('../utils/response');
@@ -6,6 +6,10 @@ const { check } = require('../utils/dice');
 
 const router = Router();
 router.use(authMiddleware);
+
+// 物品 ID 常量
+const ITEM_SHOVEL = 4;  // 铁铲
+const ITEM_MEDAL = 5;   // 纪念章
 
 router.post('/action', (req, res, next) => {
   try {
@@ -61,17 +65,17 @@ function handleShopTrade(char, state) {
   }
   const cost = 50;
   if (char.gold < cost) {
-    throw new AppError(4001, `金币不足！购买铁铲需要 ${cost} 金币（当前 ${char.gold} 金币）。`);
+    throw new AppError(4001, '金币不足！购买铁铲需要 ' + cost + ' 金币（当前 ' + char.gold + ' 金币）。');
   }
   const newGold = char.gold - cost;
-  const newInv = [...char.inventory];
-  const existing = newInv.find(i => i.name === '铁铲');
+  const newInv = [...(char.inventory || [])];
+  const existing = newInv.find(i => i.itemId === ITEM_SHOVEL);
   if (existing) existing.qty += 1;
-  else newInv.push({ name: '铁铲', qty: 1 });
+  else newInv.push({ itemId: ITEM_SHOVEL, qty: 1 });
 
   return {
     success: true,
-    message: `你花 ${cost} 金币购买了一把铁铲！`,
+    message: '你花 ' + cost + ' 金币购买了一把铁铲！',
     updatedCharacter: { gold: newGold, inventory: newInv },
     dungeonUpdates: { ...state, shopTradeDone: true },
   };
@@ -95,10 +99,9 @@ function handleShopSteal(char, state) {
 // ── 墓地挖掘：需要铁铲 ──
 function handleGraveDig(char, state) {
   if (state.graveDug) return { success: false, message: '你已经挖过墓地了。' };
-  const idx = char.inventory.findIndex(i => i.name === '铁铲' && i.qty > 0);
+  const idx = (char.inventory || []).findIndex(i => i.itemId === ITEM_SHOVEL && i.qty > 0);
   if (idx === -1) return { success: false, message: '你需要一把铁铲来挖掘墓地，可以去商店购买。', dungeonUpdates: { ...state } };
-  const newInv = [...char.inventory];
-  newInv[idx] = { ...newInv[idx] };
+  const newInv = char.inventory.map(i => ({ ...i }));
   newInv[idx].qty -= 1;
   if (newInv[idx].qty <= 0) newInv.splice(idx, 1);
   return {
@@ -128,10 +131,10 @@ function handleBossFight(char, state) {
   const roll = check(char.stats.strength, 13);
   const result = { success: roll.success, roll, message: '你不是头目的对手，攻击没有奏效。', dungeonUpdates: { ...state } };
   if (roll.success) {
-    const newInv = [...char.inventory];
-    const existing = newInv.find(i => i.name === '纪念章');
+    const newInv = [...(char.inventory || [])];
+    const existing = newInv.find(i => i.itemId === ITEM_MEDAL);
     if (existing) existing.qty += 1;
-    else newInv.push({ name: '纪念章', qty: 1 });
+    else newInv.push({ itemId: ITEM_MEDAL, qty: 1 });
     result.message = '你击败了头目，获得了一枚纪念章！';
     result.updatedCharacter = { inventory: newInv };
     result.dungeonUpdates = { ...state, bossDefeated: true };

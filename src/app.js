@@ -5,6 +5,8 @@ const errorHandler = require('./middleware/errorHandler');
 const authRoutes = require('./routes/auth');
 const characterRoutes = require('./routes/characters');
 const dungeonRoutes = require('./routes/dungeon');
+const itemRoutes = require('./routes/items');
+const npcRoutes = require('./routes/npcs');
 
 const app = express();
 
@@ -22,6 +24,8 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/characters', characterRoutes);
 app.use('/api/dungeon', dungeonRoutes);
+app.use('/api/items', itemRoutes);
+app.use('/api/npcs', npcRoutes);
 
 // 健康检查
 app.get('/api/health', (_req, res) => {
