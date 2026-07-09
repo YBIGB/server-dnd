@@ -25,6 +25,7 @@
 
 ## Git 提交规范
 - 所有 commit message **必须使用中文**
+- 必须使用 conventional commit 前缀，如feat: / fix: / chore: / docs: / refactor: / test: 
 
 ## 快速启动
 
@@ -138,4 +139,4 @@ Authorization: Bearer <token>
 
 1. 检查项目当前状态（git status、未提交的改动、lint/测试等）
 2. 如需更新 AGENTS.md（补充新的约定、规则或项目状态变化），则更新
-3. 若无其他事项（如工作树为清理，存在todo等）则 commit
+3. 若无其他事项（如工作树为清理，存在todo等）则 commit（使用 conventional commit 前缀）
